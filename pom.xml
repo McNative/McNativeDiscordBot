@@ -17,7 +17,7 @@
 
         <dependency.kotlin.version>1.4.10</dependency.kotlin.version>
 
-        <dependency.pretronic.libraries.version>1.2.23.161-SNAPSHOT</dependency.pretronic.libraries.version>
+        <dependency.pretronic.libraries.version>1.2.24.162-SNAPSHOT</dependency.pretronic.libraries.version>
         <dependency.pretronic.libraries.utility.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.utility.version>
         <dependency.pretronic.libraries.document.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.document.version>
         <dependency.pretronic.libraries.caching.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.caching.version>

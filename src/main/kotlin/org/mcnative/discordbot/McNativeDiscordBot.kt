@@ -2,6 +2,7 @@ package org.mcnative.discordbot
 
 import com.jagrosh.jdautilities.command.CommandClientBuilder
 import io.sentry.Sentry
+import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.entities.Activity
@@ -86,7 +87,6 @@ class McNativeDiscordBot {
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build()
         jda.awaitReady()
-
         return jda
     }
 
@@ -95,13 +95,15 @@ class McNativeDiscordBot {
     }
 
     private fun startTasks() {
-        this.tasks.add(this.scheduler.createTask(ObjectOwner.SYSTEM)
+        val beta = this.scheduler.createTask(ObjectOwner.SYSTEM)
                 .interval(1, TimeUnit.MINUTES)
                 .async()
-                .execute(BetaProcessTask(this)))
-        this.tasks.add(this.scheduler.createTask(ObjectOwner.SYSTEM)
+                .execute(BetaProcessTask(this))
+        this.tasks.add(beta)
+        val archived = this.scheduler.createTask(ObjectOwner.SYSTEM)
                 .interval(1, TimeUnit.HOURS)
                 .async()
-                .execute(ArchivedTask(this)))
+                .execute(ArchivedTask(this))
+        this.tasks.add(archived)
     }
 }

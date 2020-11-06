@@ -8,7 +8,9 @@ import net.pretronic.databasequery.api.dsl.insert
 import net.pretronic.databasequery.api.dsl.update
 import net.pretronic.databasequery.api.query.result.QueryResult
 import net.pretronic.databasequery.api.query.result.QueryResultEntry
+import net.pretronic.libraries.document.type.DocumentFileType
 import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import org.mcnative.discordbot.McNativeDiscordBot
 import org.mcnative.discordbot.discordserver.Categories
 import org.mcnative.discordbot.discordserver.DiscordServer
@@ -16,12 +18,14 @@ import org.mcnative.discordbot.requests.McNativeHttpRequestBuilder
 import org.mcnative.discordbot.requests.ResourceVersion
 import org.mcnative.discordbot.requests.ResourceVersionStatus
 import java.awt.Color
+import java.lang.StringBuilder
 
 class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
 
     private var lastContact: DateTime = DateTime.now().minusMinutes(1)
 
     override fun run() {
+        println(DateTime.now().toDateTimeISO().toString(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")) + " BETA")
         val now = DateTime.now()
         this.bot.serverManager.servers.cachedObjects.forEach {
             it.configuration.betaProcessResourceIds.forEach { resourceId ->
@@ -60,7 +64,7 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
                         val patchNumber = entry.getInt("PatchNumber")
                         if(version.versionInfo.minor == minor && version.versionInfo.patch == patchNumber) {
                             //Beta was released
-                            handleNewReleaseVersion(server, entry, guild)
+                            handleNewReleaseVersion(server, entry, guild, version, resourceId)
                         }
                     }
                 }
@@ -72,7 +76,7 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
         server.configuration.getCategory(guild, Categories.TESTING)
                 ?.createTextChannel(getChannelName(resourceId, version))
                 ?.queue { channel ->
-                    channel.manager.setTopic(getChannelTopic(resourceId, version))
+                    channel.manager.setTopic(getChannelTopic(resourceId, version)).queue()
                     channel.sendMessage(buildTestingBetaProcessMessage(bot.resourceManager.getResourceName(resourceId), version.versionInfo.name,
                             version.description, version.testCases)).queue { message ->
                         bot.storage.discordServerBetaProcessesCollection.insert {
@@ -93,7 +97,7 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
     private fun handleUpdateBetaVersion(guild: Guild, version: ResourceVersion, entry: QueryResultEntry, resourceId: String) {
         guild.getTextChannelById(entry.getLong("ChannelId"))?.let {
             it.manager.setName(getChannelName(resourceId, version)).queue()
-            it.manager.setTopic(getChannelTopic(resourceId, version))
+            it.manager.setTopic(getChannelTopic(resourceId, version)).queue()
             it.sendMessage(buildTestingBetaProcessMessage(bot.resourceManager.getResourceName(resourceId),
                             version.versionInfo.name, version.description, version.testCases)).queue {
                 bot.storage.discordServerBetaProcessesCollection.update {
@@ -106,14 +110,21 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
         }
     }
 
-    private fun handleNewReleaseVersion(server: DiscordServer, entry: QueryResultEntry, guild: Guild) {
+    private fun handleNewReleaseVersion(server: DiscordServer, entry: QueryResultEntry, guild: Guild, version: ResourceVersion, resourceId: String) {
         bot.storage.discordServerBetaProcessesCollection.update {
             set("State", "Passed")
             set("PassedTime", DateTime.now())
             where("Id", entry.getInt("Id"))
         }.executeAsync()
-        server.configuration.getCategory(guild, Categories.PASSED)?.let {
-            guild.getTextChannelById(entry.getLong("ChannelId"))?.manager?.setParent(it)?.queue()
+        server.configuration.getCategory(guild, Categories.PASSED)?.let { category ->
+            guild.getTextChannelById(entry.getLong("ChannelId"))?.let {
+                it.manager.setParent(category).queue()
+                it.sendMessage(EmbedBuilder()
+                        .setColor(Color(23, 143, 57))
+                        .setTitle("Tests has been passed and released under version ${version.versionInfo.name}")
+                        .build()).queue()
+                it.manager.setTopic(getChannelTopic(resourceId, version, " (Passed)")).queue()
+            }
         }
     }
 
@@ -131,10 +142,10 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
         builder.setTitle("__**$resourceName v$versionName**__")
         builder.setColor(Color(28, 138, 217))
         description?.let {
-            builder.appendDescription(it).appendDescription("\n \n")
+            builder.appendDescription(it).appendDescription("\n\n")
         }
         testCases?.let {
-            builder.appendDescription(it)
+            builder.appendDescription(getTestCasesMessage(it))
         }
         return builder.build()
     }
@@ -160,7 +171,25 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
         return "${bot.resourceManager.getResourceName(resourceId)}-${version.versionInfo.minor}-beta"
     }
 
-    private fun getChannelTopic(resourceId: String, version: ResourceVersion): String {
-        return "${bot.resourceManager.getResourceName(resourceId)} v${version.versionInfo.name}"
+    private fun getChannelTopic(resourceId: String, version: ResourceVersion, suffix: String = ""): String {
+        return "${bot.resourceManager.getResourceName(resourceId)} v${version.versionInfo.name}$suffix"
+    }
+
+    private fun getTestCasesMessage(raw: String): String {
+        println(raw)
+        val data = DocumentFileType.JSON.reader.read(raw)
+
+        if(data.isEmpty || !data.contains("cases")) return ""
+        val builder = StringBuilder()
+        builder.append("__**Test Cases**__")
+        data.getDocument("cases").forEach {
+            val document = it.toDocument()
+            val title = document.getString("title")
+            builder.append("\n\n:arrow_forward: **$title**")
+            document.getDocument("actions").forEach { entry ->
+                builder.append("\n- ${entry.toPrimitive().asString}")
+            }
+        }
+        return builder.toString()
     }
 }

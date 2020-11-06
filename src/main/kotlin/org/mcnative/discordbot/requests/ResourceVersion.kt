@@ -1,13 +1,11 @@
 package org.mcnative.discordbot.requests
 
-import net.pretronic.libraries.document.Document
 import net.pretronic.libraries.document.adapter.DocumentAdapter
 import net.pretronic.libraries.document.entry.DocumentBase
 import net.pretronic.libraries.document.entry.DocumentEntry
 import net.pretronic.libraries.utility.reflect.TypeReference
 import org.joda.time.DateTime
 import org.mcnative.discordbot.VersionInfo
-import java.util.*
 
 class ResourceVersion(val id: Int, val versionInfo: VersionInfo, val time: DateTime, val status: ResourceVersionStatus, val description: String?, val changes: String?, val testCases: String?) {
 
