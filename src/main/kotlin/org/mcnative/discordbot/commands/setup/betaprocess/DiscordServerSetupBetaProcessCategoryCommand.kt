@@ -2,6 +2,7 @@ package org.mcnative.discordbot.commands.setup.betaprocess
 
 import com.jagrosh.jdautilities.command.Command
 import com.jagrosh.jdautilities.command.CommandEvent
+import net.dv8tion.jda.api.Permission
 import org.mcnative.discordbot.McNativeDiscordBot
 
 class DiscordServerSetupBetaProcessCategoryCommand(private val bot: McNativeDiscordBot): Command() {
@@ -11,6 +12,7 @@ class DiscordServerSetupBetaProcessCategoryCommand(private val bot: McNativeDisc
     init {
         name = "category"
         help = "Setup the beta process categories. Available: Testing, Passed and Archived"
+        userPermissions = arrayOf(Permission.ADMINISTRATOR)
     }
 
     override fun execute(event: CommandEvent) {
