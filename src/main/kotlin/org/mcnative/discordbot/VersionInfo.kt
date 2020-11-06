@@ -20,13 +20,10 @@ class VersionInfo(val name: String, val major: Int, val minor: Int, val patch: I
 
     companion object {
         var UNKNOWN = VersionInfo("Unknown", 0, 0, 0, 0, "Unknown")
-        fun parse(version0: String): VersionInfo {
-            var version = version0
-            val index = version0.indexOf(';')
-            if (index != -1) version = version0.substring(0, index)
+        fun parse(version: String): VersionInfo {
 
             val versionAndQualifier = version.split("-").toTypedArray()
-            val parts = versionAndQualifier[0].split("\\.").toTypedArray()
+            val parts = versionAndQualifier[0].split(".").toTypedArray()
 
             val major = if (parts.isNotEmpty() && isNaturalNumber(parts[0])) parts[0].toInt() else 0
             val minor = if (parts.size >= 2 && isNaturalNumber(parts[1])) parts[1].toInt() else 0

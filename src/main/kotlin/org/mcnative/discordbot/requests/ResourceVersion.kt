@@ -9,7 +9,7 @@ import org.joda.time.DateTime
 import org.mcnative.discordbot.VersionInfo
 import java.util.*
 
-class ResourceVersion(id: Int, versionInfo: VersionInfo, time: DateTime, status: ResourceVersionStatus, description: String?, changes: String?, testCases: String?) {
+class ResourceVersion(val id: Int, val versionInfo: VersionInfo, val time: DateTime, val status: ResourceVersionStatus, val description: String?, val changes: String?, val testCases: String?) {
 
     companion object {
 

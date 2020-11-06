@@ -17,13 +17,13 @@
 
         <dependency.kotlin.version>1.4.10</dependency.kotlin.version>
 
-        <dependency.pretronic.libraries.version>1.2.18.156-SNAPSHOT</dependency.pretronic.libraries.version>
+        <dependency.pretronic.libraries.version>1.2.23.161-SNAPSHOT</dependency.pretronic.libraries.version>
         <dependency.pretronic.libraries.utility.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.utility.version>
         <dependency.pretronic.libraries.document.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.document.version>
         <dependency.pretronic.libraries.caching.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.caching.version>
         <dependency.pretronic.libraries.concurrent.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.concurrent.version>
         <dependency.pretronic.libraries.logging.version>${dependency.pretronic.libraries.version}</dependency.pretronic.libraries.logging.version>
-        <dependency.pretronic.databasequery.version>1.2.37.64-SNAPSHOT</dependency.pretronic.databasequery.version>
+        <dependency.pretronic.databasequery.version>1.2.43.70-SNAPSHOT</dependency.pretronic.databasequery.version>
 
         <dependency.mariadb.version>2.6.0</dependency.mariadb.version>
 
@@ -147,6 +147,8 @@
             <version>2.2.0</version>
             <scope>compile</scope>
         </dependency>
+
+
     </dependencies>
 
     <build>
@@ -220,6 +222,7 @@
                 </executions>
                 <configuration>
                     <jvmTarget>1.8</jvmTarget>
+                    <languageVersion>1.4</languageVersion>
                 </configuration>
             </plugin>
         </plugins>
