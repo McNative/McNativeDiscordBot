@@ -17,17 +17,17 @@ class ArchivedTask(private val bot: McNativeDiscordBot): Runnable {
                 val rawPassedTime = it.getObject("PassedTime") as Timestamp
                 val passedTime = DateTime(rawPassedTime.time)
                 if(passedTime.plusDays(14).isBeforeNow) {
-                    this.bot.serverManager.getServer(it.getLong("GuildId")).thenAccept { server ->
-                        server.guild?.let { guild ->
-                            server.configuration.getCategory(guild, Categories.ARCHIVED)?.let { category ->
-                                guild.getTextChannelById(it.getLong("ChannelId"))?.manager?.setParent(category)?.queue()
-                            }
+                    val server = this.bot.serverManager.getServer(it.getLong("GuildId"))
+                    server.guild?.let { guild ->
+                        server.configuration.getCategory(guild, Categories.ARCHIVED)?.let { category ->
+                            guild.getTextChannelById(it.getLong("ChannelId"))?.manager?.setParent(category)?.queue()
                         }
-                        bot.storage.discordServerBetaProcessesCollection.update {
-                            set("State", "Archived")
-                            where("Id", it.getInt("Id"))
-                        }.executeAsync()
                     }
+                    bot.storage.discordServerBetaProcessesCollection.update {
+                        set("State", "Archived")
+                        where("Id", it.getInt("Id"))
+                    }.executeAsync()
+
                 }
             }
         }

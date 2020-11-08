@@ -34,10 +34,10 @@ class DiscordServerSetupBetaProcessCategoryCommand(private val bot: McNativeDisc
                 sendCategoryNotFound(categoryId, event)
                 return
             }
-            bot.serverManager.getServer(event.guild).thenAccept {
-                it.configuration.categoryIds[categoryIdentifier] = category.idLong
-                event.reply("You have successfully set the category id ${category.id} for the category $categoryIdentifier")
-            }
+            val server = bot.serverManager.getServer(event.guild)
+            server.configuration.categoryIds[categoryIdentifier] = category.idLong
+            event.reply("You have successfully set the category id ${category.id} for the category $categoryIdentifier")
+
         } catch (error: IllegalArgumentException) {
             error.printStackTrace()
             sendCategoryNotFound(categoryId, event)

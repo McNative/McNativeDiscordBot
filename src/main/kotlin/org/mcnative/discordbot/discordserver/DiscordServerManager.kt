@@ -19,60 +19,50 @@ import java.util.concurrent.CompletableFuture
 
 class DiscordServerManager(private val bot: McNativeDiscordBot) {
 
-    val servers: Cache<DiscordServer> = ArrayCache()
+    val servers: MutableCollection<DiscordServer> = ArrayList()
 
     init {
-        servers.registerQuery("byGuildId", object : CacheQuery<DiscordServer>{
-
-            override fun check(server: DiscordServer, identifiers: Array<out Any>): Boolean {
-                return server.guildId == identifiers[0] as Long
-            }
-
-            override fun validate(identifiers: Array<out Any>) {
-                Validate.isTrue(identifiers.size == 1 && identifiers[0] is Long)
-            }
-
-            override fun load(identifiers: Array<out Any>): DiscordServer? {
-                try {
-                    val guildId = identifiers[0] as Long
-                    val result = bot.storage.discordServersCollection.find { where("GuildId", guildId) }.execute()
-                    if(result.isEmpty) {
-                        bot.storage.discordServersCollection.insert {
-                            set("GuildId", guildId)
-                        }.executeAsync()
-                        return DiscordServer(guildId)
-                    }
-                    val entry = result.first()
-                    val rawCategoryIds = DocumentFileType.JSON.reader.read(entry.getString("CategoryIds"))
-                    val categoryIds: CallbackMap<String, Long> = if(rawCategoryIds == null || rawCategoryIds.isEmpty) ConcurrentCallbackMap() else {
-                        rawCategoryIds.getAsObject(object : TypeReference<ConcurrentCallbackMap<String, Long>>() {})
-                    }
-
-                    val rawBetaProcessResourceIds = DocumentFileType.JSON.reader.read(entry.getString("BetaProcessResourceIds"))
-                    val betaProcessResourceIds: CallbackCollection<String> = if(rawBetaProcessResourceIds == null || rawBetaProcessResourceIds.isEmpty) ArrayCallbackList() else {
-                        rawBetaProcessResourceIds.getAsObject(object : TypeReference<ArrayCallbackList<String>>() {})
-                    }
-                    return DiscordServer(guildId, DiscordServerConfiguration(entry.getLong("TesterRoleId"), categoryIds, betaProcessResourceIds))
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                return null
-            }
-        })
         loadAll()
     }
+
     //Temporary
     private fun loadAll() {
         bot.storage.discordServersCollection.find().execute().forEach {
-            getServer(it.getLong("GuildId"))
+            this.servers.add(loadDiscordServer(it.getLong("GuildId")))
         }
     }
 
-    fun getServer(guildId: Long): CompletableFuture<DiscordServer> {
-        return servers.getAsync("byGuildId", guildId)
+    fun getServer(guildId: Long): DiscordServer {
+        var server = this.servers.firstOrNull { it.guildId == guildId }
+        if(server == null) {
+            server = loadDiscordServer(guildId)
+            this.servers.add(server)
+        }
+        return server
     }
 
-    fun getServer(guild: Guild): CompletableFuture<DiscordServer> {
+    fun getServer(guild: Guild): DiscordServer {
         return getServer(guild.idLong)
+    }
+
+    private fun loadDiscordServer(guildId: Long): DiscordServer {
+        val result = bot.storage.discordServersCollection.find { where("GuildId", guildId) }.execute()
+        if(result.isEmpty) {
+            bot.storage.discordServersCollection.insert {
+                set("GuildId", guildId)
+            }.executeAsync()
+            return DiscordServer(guildId)
+        }
+        val entry = result.first()
+        val rawCategoryIds = DocumentFileType.JSON.reader.read(entry.getString("CategoryIds"))
+        val categoryIds: CallbackMap<String, Long> = if(rawCategoryIds == null || rawCategoryIds.isEmpty) ConcurrentCallbackMap() else {
+            rawCategoryIds.getAsObject(object : TypeReference<ConcurrentCallbackMap<String, Long>>() {})
+        }
+
+        val rawBetaProcessResourceIds = DocumentFileType.JSON.reader.read(entry.getString("BetaProcessResourceIds"))
+        val betaProcessResourceIds: CallbackCollection<String> = if(rawBetaProcessResourceIds == null || rawBetaProcessResourceIds.isEmpty) ArrayCallbackList() else {
+            rawBetaProcessResourceIds.getAsObject(object : TypeReference<ArrayCallbackList<String>>() {})
+        }
+        return DiscordServer(guildId, DiscordServerConfiguration(entry.getLong("TesterRoleId"), categoryIds, betaProcessResourceIds))
     }
 }

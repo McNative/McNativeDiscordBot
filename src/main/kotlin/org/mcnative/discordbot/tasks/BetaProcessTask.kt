@@ -27,7 +27,7 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
     override fun run() {
         println(DateTime.now().toDateTimeISO().toString(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")) + " BETA")
         val now = DateTime.now()
-        this.bot.serverManager.servers.cachedObjects.forEach {
+        this.bot.serverManager.servers.forEach {
             it.configuration.betaProcessResourceIds.forEach { resourceId ->
                 handleDeltaRequest(it, resourceId, now)
                 handleLastUpdatedRequest(it, resourceId, now)

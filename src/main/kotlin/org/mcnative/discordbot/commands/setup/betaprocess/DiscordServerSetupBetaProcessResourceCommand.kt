@@ -17,9 +17,7 @@ class DiscordServerSetupBetaProcessResourceCommand(private val bot: McNativeDisc
         val args = event.args.split(" ")
         val server = bot.serverManager.getServer(event.guild)
         if(args.isNotEmpty() && args[0].equals("list", true)) {
-            server.thenAccept {
-                event.reply("You have configured following resources to the beta process:${it.configuration.betaProcessResourceIds.joinToString("\n- ", "\n- ")}")
-            }
+            event.reply("You have configured following resources to the beta process:${server.configuration.betaProcessResourceIds.joinToString("\n- ", "\n- ")}")
             return
         } else if(args.size != 2) {
             event.reply(help)
@@ -28,17 +26,14 @@ class DiscordServerSetupBetaProcessResourceCommand(private val bot: McNativeDisc
         val resourceId = args[1]
         when(args[0].toLowerCase()) {
             "add" -> {
-                server.thenAccept {
-                    it.configuration.betaProcessResourceIds.add(resourceId)
-                    event.reply("You have added the resource with the id $resourceId to the beta process")
-                }
+                server.configuration.betaProcessResourceIds.add(resourceId)
+                event.reply("You have added the resource with the id $resourceId to the beta process")
+
                 return
             }
             "remove" -> {
-                server.thenAccept {
-                    it.configuration.betaProcessResourceIds.remove(resourceId)
-                    event.reply("You have removed the resource with the id $resourceId to the beta process")
-                }
+                server.configuration.betaProcessResourceIds.remove(resourceId)
+                event.reply("You have removed the resource with the id $resourceId to the beta process")
                 return
             }
             else -> {
