@@ -21,6 +21,7 @@ class McNativeHttpRequestBuilder(val resourceId: String,
                                  val lastUpdatedEnd: DateTime? = null) {
 
     private val httpClient = HttpClient()
+    private var url: String
 
     init {
         if((deltaStart != null || deltaEnd != null) && (lastUpdatedStart!= null || lastUpdatedEnd != null)) {
@@ -57,6 +58,7 @@ class McNativeHttpRequestBuilder(val resourceId: String,
             }
             urlBuilder.append(it.key).append("=").append(it.value)
         }
+        this.url = urlBuilder.toString()
         httpClient.setUrl(urlBuilder.toString())
     }
 
@@ -80,6 +82,7 @@ class McNativeHttpRequestBuilder(val resourceId: String,
         } else {
             addVersions(document.getDocument("rows"), versions)
         }
+        McNativeDiscordBot.logger.info("Created request with url $url")
         return versions
     }
 

@@ -15,7 +15,8 @@ import java.util.function.Consumer
 
 class DiscordServerConfiguration(testerRoleId: Long? = null,
                                  val categoryIds: CallbackMap<String, Long> = ConcurrentCallbackMap(),
-                                 val betaProcessResourceIds: CallbackCollection<String> = ArrayCallbackList()) {
+                                 val betaProcessResourceIds: CallbackCollection<String> = ArrayCallbackList(),
+                                 val changelogNotifierConfigurations: CallbackCollection<ChangelogNotifierConfiguration> = ArrayCallbackList()) {
 
     lateinit var discordServer: DiscordServer
 
@@ -36,9 +37,9 @@ class DiscordServerConfiguration(testerRoleId: Long? = null,
                 where("GuildId", discordServer.guildId)
             }.executeAsync()
         }
-
         this.categoryIds.setPutCallback(categoryIdsCallback)
         this.categoryIds.setRemoveCallback(categoryIdsCallback)
+
 
         val betaProcessResourceIdsCallback: Consumer<String> = Consumer {
             McNativeDiscordBot.INSTANCE.storage.discordServersCollection.update {
@@ -46,9 +47,18 @@ class DiscordServerConfiguration(testerRoleId: Long? = null,
                 where("GuildId", discordServer.guildId)
             }.executeAsync()
         }
-
         this.betaProcessResourceIds.setAddCallback(betaProcessResourceIdsCallback)
         this.betaProcessResourceIds.setRemoveCallback(betaProcessResourceIdsCallback)
+
+
+        val changelogNotifierConfigurationsCallback: Consumer<ChangelogNotifierConfiguration> = Consumer {
+            McNativeDiscordBot.INSTANCE.storage.discordServersCollection.update {
+                set("ChangelogNotifierConfigurations", DocumentFileType.JSON.writer.write(Document.newDocument(changelogNotifierConfigurations), false))
+                where("GuildId", discordServer.guildId)
+            }.executeAsync()
+        }
+        this.changelogNotifierConfigurations.setAddCallback(changelogNotifierConfigurationsCallback)
+        this.changelogNotifierConfigurations.setRemoveCallback(changelogNotifierConfigurationsCallback)
     }
 
     fun getCategory(guild: Guild, identifier: String): Category? {

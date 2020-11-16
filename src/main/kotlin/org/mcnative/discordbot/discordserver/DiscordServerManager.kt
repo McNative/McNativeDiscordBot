@@ -3,19 +3,13 @@ package org.mcnative.discordbot.discordserver
 import net.dv8tion.jda.api.entities.Guild
 import net.pretronic.databasequery.api.dsl.find
 import net.pretronic.databasequery.api.dsl.insert
-import net.pretronic.libraries.caching.ArrayCache
-import net.pretronic.libraries.caching.Cache
-import net.pretronic.libraries.caching.CacheQuery
 import net.pretronic.libraries.document.type.DocumentFileType
-import net.pretronic.libraries.utility.Validate
 import net.pretronic.libraries.utility.list.ArrayCallbackList
 import net.pretronic.libraries.utility.list.CallbackCollection
 import net.pretronic.libraries.utility.map.callback.CallbackMap
 import net.pretronic.libraries.utility.map.callback.ConcurrentCallbackMap
 import net.pretronic.libraries.utility.reflect.TypeReference
 import org.mcnative.discordbot.McNativeDiscordBot
-import java.lang.Exception
-import java.util.concurrent.CompletableFuture
 
 class DiscordServerManager(private val bot: McNativeDiscordBot) {
 
@@ -63,6 +57,21 @@ class DiscordServerManager(private val bot: McNativeDiscordBot) {
         val betaProcessResourceIds: CallbackCollection<String> = if(rawBetaProcessResourceIds == null || rawBetaProcessResourceIds.isEmpty) ArrayCallbackList() else {
             rawBetaProcessResourceIds.getAsObject(object : TypeReference<ArrayCallbackList<String>>() {})
         }
-        return DiscordServer(guildId, DiscordServerConfiguration(entry.getLong("TesterRoleId"), categoryIds, betaProcessResourceIds))
+
+        val rawChangelogNotifierConfigurations = DocumentFileType.JSON.reader.read(entry.getString("ChangelogNotifierConfigurations"))
+        val changelogNotifierConfigurations: CallbackCollection<ChangelogNotifierConfiguration> =
+                if(rawChangelogNotifierConfigurations == null || rawChangelogNotifierConfigurations.isEmpty) ArrayCallbackList() else {
+                    rawChangelogNotifierConfigurations.getAsObject(object : TypeReference<ArrayCallbackList<ChangelogNotifierConfiguration>>() {})
+                }
+
+        val rawSentChangelogNotifications = DocumentFileType.JSON.reader.read(entry.getString("SentChangelogNotifications"))
+        val sentChangelogNotifications: CallbackCollection<ChangelogNotification> =
+                if(rawSentChangelogNotifications == null || rawSentChangelogNotifications.isEmpty) ArrayCallbackList() else {
+                    rawSentChangelogNotifications.getAsObject(object : TypeReference<ArrayCallbackList<ChangelogNotification>>() {})
+                }
+
+        return DiscordServer(guildId,
+                DiscordServerConfiguration(entry.getLong("TesterRoleId"), categoryIds, betaProcessResourceIds, changelogNotifierConfigurations),
+                sentChangelogNotifications)
     }
 }

@@ -3,6 +3,7 @@ package org.mcnative.discordbot.tasks
 import net.dv8tion.jda.api.EmbedBuilder
 import net.dv8tion.jda.api.entities.Guild
 import net.dv8tion.jda.api.entities.MessageEmbed
+import net.dv8tion.jda.api.entities.TextChannel
 import net.pretronic.databasequery.api.dsl.find
 import net.pretronic.databasequery.api.dsl.insert
 import net.pretronic.databasequery.api.dsl.update
@@ -10,9 +11,10 @@ import net.pretronic.databasequery.api.query.result.QueryResult
 import net.pretronic.databasequery.api.query.result.QueryResultEntry
 import net.pretronic.libraries.document.type.DocumentFileType
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import org.mcnative.discordbot.McNativeDiscordBot
 import org.mcnative.discordbot.discordserver.Categories
+import org.mcnative.discordbot.discordserver.ChangelogNotification
+import org.mcnative.discordbot.discordserver.ChangelogNotifierConfiguration
 import org.mcnative.discordbot.discordserver.DiscordServer
 import org.mcnative.discordbot.requests.McNativeHttpRequestBuilder
 import org.mcnative.discordbot.requests.ResourceVersion
@@ -30,6 +32,9 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
             it.configuration.betaProcessResourceIds.forEach { resourceId ->
                 handleDeltaRequest(it, resourceId, now)
                 handleLastUpdatedRequest(it, resourceId, now)
+            }
+            it.configuration.changelogNotifierConfigurations.forEach { notifierConfiguration ->
+                handleNewChanges(it, notifierConfiguration, now)
             }
         }
         this.lastContact = now
@@ -144,7 +149,7 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
             builder.appendDescription(it).appendDescription("\n\n")
         }
         testCases?.let {
-            builder.appendDescription(getTestCasesMessage(it))
+            builder.appendDescription(formatTestCasesMessage(it))
         }
         return builder.build()
     }
@@ -176,7 +181,7 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
         return "${bot.resourceManager.getResourceName(resourceId)} v${version.versionInfo.name}$suffix"
     }
 
-    private fun getTestCasesMessage(raw: String): String {
+    private fun formatTestCasesMessage(raw: String): String {
         val data = DocumentFileType.JSON.reader.read(raw)
 
         if(data.isEmpty || !data.contains("cases")) return ""
@@ -191,5 +196,40 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
             }
         }
         return builder.toString()
+    }
+
+    private fun handleNewChanges(server: DiscordServer, notifierConfiguration: ChangelogNotifierConfiguration, now: DateTime) {
+        server.guild?.let { guild ->
+            guild.getTextChannelById(notifierConfiguration.channelId)?.let { channel ->
+                val deltaRequest = McNativeHttpRequestBuilder(notifierConfiguration.resourceId, deltaStart = lastContact, deltaEnd = now, details = true).createRequest()
+                handleNewResourceVersions(server, channel, notifierConfiguration, deltaRequest)
+
+                val lastUpdatedRequest = McNativeHttpRequestBuilder(notifierConfiguration.resourceId, lastUpdatedStart = lastContact, lastUpdatedEnd = now, details = true).createRequest()
+                handleNewResourceVersions(server, channel, notifierConfiguration, lastUpdatedRequest)
+            }
+        }
+    }
+
+    private fun handleNewResourceVersions(server: DiscordServer, channel: TextChannel, notifierConfiguration: ChangelogNotifierConfiguration, versions: List<ResourceVersion>) {
+        versions.forEach { version ->
+            if(version.status == ResourceVersionStatus.PUBLISHED && version.versionInfo.qualifier.equals(notifierConfiguration.qualifier, ignoreCase = true)) {
+                val sentNotification = server.sentChangelogNotifications.firstOrNull {
+                    it.channelId == channel.idLong && it.resourceId == notifierConfiguration.resourceId && it.versionName == version.versionInfo.name
+                }
+                if(sentNotification == null) {
+                    channel.sendMessage(formatChangelogMessage(notifierConfiguration.resourceId, version)).queue()
+                    server.sentChangelogNotifications.add(ChangelogNotification(channel.idLong, notifierConfiguration.resourceId, version.versionInfo.name))
+                }
+            }
+        }
+    }
+
+    private fun formatChangelogMessage(resourceId: String, version: ResourceVersion): MessageEmbed {
+        val builder = EmbedBuilder()
+
+        builder.setTitle("__**New version of ${bot.resourceManager.getResourceName(resourceId)} v${version.versionInfo.name}**__")
+        builder.setDescription(version.changes)
+        builder.setColor(Color(28, 138, 217))
+        return builder.build()
     }
 }
