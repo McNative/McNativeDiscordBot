@@ -57,7 +57,6 @@ class McNativeHttpRequestBuilder(val resourceId: String,
             }
             urlBuilder.append(it.key).append("=").append(it.value)
         }
-        println(urlBuilder.toString())
         httpClient.setUrl(urlBuilder.toString())
     }
 
@@ -73,7 +72,6 @@ class McNativeHttpRequestBuilder(val resourceId: String,
         } while (line != null)
 
         val rawData = builder.toString()
-        println(rawData)
 
         val document = DocumentFileType.JSON.reader.read(rawData)
         val versions = ArrayList<ResourceVersion>()

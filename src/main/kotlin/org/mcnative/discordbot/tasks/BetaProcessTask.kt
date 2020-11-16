@@ -25,7 +25,6 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
     private var lastContact: DateTime = DateTime.now().minusMinutes(1)
 
     override fun run() {
-        println(DateTime.now().toDateTimeISO().toString(DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")) + " BETA")
         val now = DateTime.now()
         this.bot.serverManager.servers.forEach {
             it.configuration.betaProcessResourceIds.forEach { resourceId ->
@@ -162,6 +161,8 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
                     guild.getTextChannelById(entry.getLong("ChannelId"))?.editMessageById(entry.getLong("ChannelControlMessageId"),
                             buildTestingBetaProcessMessage(bot.resourceManager.getResourceName(resourceId), version.versionInfo.name,
                                     description, testCases))?.queue()
+                } else if(version.status == ResourceVersionStatus.TESTING) {
+                    handleCreateBetaVersion(server, guild, version, resourceId)
                 }
             }
         }
@@ -176,7 +177,6 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
     }
 
     private fun getTestCasesMessage(raw: String): String {
-        println(raw)
         val data = DocumentFileType.JSON.reader.read(raw)
 
         if(data.isEmpty || !data.contains("cases")) return ""
