@@ -229,7 +229,15 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
 
         builder.setTitle("__**New version of ${bot.resourceManager.getResourceName(resourceId)} v${version.versionInfo.name}**__")
         builder.setDescription(version.changes)
-        builder.setColor(Color(28, 138, 217))
+        builder.setColor(getQualifierColor(version.versionInfo.qualifier))
         return builder.build()
+    }
+
+    private fun getQualifierColor(qualifier: String): Color {
+        return when(qualifier) {
+            "BETA" -> Color(25, 118, 210)
+            "SNAPSHOT" -> Color(100, 116, 117)
+            else -> Color(22, 125, 26)
+        }
     }
 }
