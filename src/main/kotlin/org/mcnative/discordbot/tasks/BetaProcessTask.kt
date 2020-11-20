@@ -162,12 +162,15 @@ class BetaProcessTask(private val bot: McNativeDiscordBot): Runnable {
                 val testCases = version.testCases
                 val description = version.description
                 val entry = databaseResult.firstOrNull()
-                if(entry != null) {
-                    guild.getTextChannelById(entry.getLong("ChannelId"))?.editMessageById(entry.getLong("ChannelControlMessageId"),
-                            buildTestingBetaProcessMessage(bot.resourceManager.getResourceName(resourceId), version.versionInfo.name,
-                                    description, testCases))?.queue()
-                } else if(version.status == ResourceVersionStatus.TESTING) {
+                if(entry == null) {
+                    //Create
                     handleCreateBetaVersion(server, guild, version, resourceId)
+                } else {
+                    val minor = entry.getInt("MinorVersion")
+                    if(minor == version.versionInfo.minor) {
+                        //Update
+                        handleUpdateBetaVersion(guild, version, entry, resourceId)
+                    }
                 }
             }
         }
